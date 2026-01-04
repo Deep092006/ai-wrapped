@@ -1,27 +1,38 @@
 /**
  * 🔧 LangChain Tool Example
- * Function calling with Ollama using LangChain tools
+ * Function calling using LangChain createAgent with Ollama
  */
 
 import { configDotenv } from "dotenv";
+import { createAgent, tool } from "langchain";
 import { ChatOllama } from "@langchain/ollama";
-import { tool } from "@langchain/core/tools";
-import { z } from "zod";
+import * as z from "zod";
 
 // 🔐 Load environment variables
 configDotenv();
 
 // 🛠️ Define custom tool with schema
+const getWeather = tool(
+  (input) => `It's always sunny in ${input.city}!`,
+  {
+    name: "get_weather",
+    description: "Get the weather for a given city",
+    schema: z.object({
+      city: z.string().describe("The city to get the weather for"),
+    }),
+  }
+);
 const getTemperatureTool = tool(
   async ({ city }) => {
     const temperatures = {
       'New York': '22°C',
       'London': '15°C',
       'Tokyo': '18°C',
+      'Paris': '17°C',
+      'Sydney': '25°C',
     };
     const temp = temperatures[city] ?? 'Unknown';
-    console.log(`🔧 Tool called: get_temperature for ${city} -> ${temp}`);
-    return temp;
+    return `The current temperature in ${city} is ${temp}`;
   },
   {
     name: "get_temperature",
@@ -32,7 +43,7 @@ const getTemperatureTool = tool(
   }
 );
 
-// 🤖 Initialize Ollama client
+// 🤖 Initialize Ollama model
 const model = new ChatOllama({
   model: "kimi-k2:1t",
   baseUrl: "https://ollama.com",
@@ -41,40 +52,22 @@ const model = new ChatOllama({
   },
 });
 
-// 🔗 Bind tool to model
-const modelWithTools = model.bindTools([getTemperatureTool]);
+// 🤖 Create agent with Ollama model and tools
+const agent = createAgent({
+  model: model,
+  tools: [getWeather,getTemperatureTool],
+});
 
-// 🚀 Send message with tool capability
-const response = await modelWithTools.invoke("What's the temperature in Tokyo?");
-
-// 📤 Output initial response
-console.log("\n🤖 AI Message:", response.content);
-
-// 🔄 Handle tool calls if present
-if (response.tool_calls && response.tool_calls.length > 0) {
-  console.log("\n🔧 Tool Calls Detected:", response.tool_calls);
-  
-  // ⚙️ Execute the tool
-  const toolCall = response.tool_calls[0];
-  const toolResult = await getTemperatureTool.invoke(toolCall.args);
-  
-  console.log("\n✅ Tool Result:", toolResult);
-  
-  // 📨 Build conversation with tool result
-  const messages = [
-    { role: "user", content: "What's the temperature in Tokyo?" },
-    response,
-    {
-      role: "tool",
-      content: toolResult,
-      tool_call_id: toolCall.id,
-    },
-  ];
-  
-  // 💬 Get final response
-  const finalResponse = await model.invoke(messages);
-  console.log("\n💬 Final Answer:", finalResponse.content);
-} else {
-  // ⚠️ No tool calls made
-  console.log("\n⚠️ No tool calls were made.");
+// 🚀 Invoke agent and output result
+const agentStream = await agent.stream(
+  { messages: [{ role: "user", content: "what is the weather and temperature in New York" }] },
+  { streamMode: "updates" }
+)
+for await (const chunk of agentStream) {
+  if (chunk.model_request) {
+  console.log("📤 Model Request:", chunk.model_request.messages[0].content);
+  }
+  if (chunk.tools) {
+  console.log("🔧 Tool Response:", chunk.tools.messages[0].content);
+  }
 }
