@@ -3,12 +3,13 @@
  * Database querying with Ollama using LangChain agents
  */
 
+import { MemorySaver } from "@langchain/langgraph";
 import { ChatOllama } from "@langchain/ollama";
 import { configDotenv } from "dotenv";
-import { createAgent, tool } from "langchain";
+import { createAgent, createMiddleware, tool } from "langchain";
 import PG from "pg";
 import z from "zod";
-
+const checkpointer = new MemorySaver();
 // 🔐 Load environment variables
 const { Pool } = PG;
 configDotenv();
@@ -38,6 +39,16 @@ const postgresQueryTool = tool(executeQuery, {
   }),
 });
 
+const customStateSchema = z.object({  
+    userId: z.string(),  
+    preferences: z.record(z.string(), z.any()),  
+}); 
+
+const stateExtensionMiddleware = createMiddleware({
+    name: "StateExtension",
+    stateSchema: customStateSchema,  
+});
+
 // 🤖 Initialize Ollama model
 const model = new ChatOllama({
   model: "kimi-k2:1t",
@@ -51,11 +62,16 @@ const model = new ChatOllama({
 const agent = createAgent({
   model: model,
   tools: [postgresQueryTool],
+   middleware: [stateExtensionMiddleware],  
+    checkpointer,
 });
 
 // 🚀 Invoke agent and output result
 console.log(
   await agent.invoke({
-    messages: [{ role: "user", content: "how many tables i have" }],
-  })
+    messages: [{ role: "user", content: "how many tables i have"}],
+    
+    userId:"user123",
+    preferences:{theme: "dark" },
+  },{ configurable: { thread_id: "1" } })
 );

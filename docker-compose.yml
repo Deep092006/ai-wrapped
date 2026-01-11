@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # 🤖 Ollama server for embeddings and chat models
+  ollama:
+    build:
+      context: .
+      dockerfile: Dockerfile.ollama
+    container_name: ollama-server
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # 🔍 Qdrant vector database for RAG
+  vector-db:
+    image: qdrant/qdrant:latest
+    container_name: qdrant-db
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    networks:
+      - ai-network
+
+volumes:
+  ollama-data:
+  qdrant-data:
+
+networks:
+  ai-network:
+    driver: bridge

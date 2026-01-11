@@ -1,0 +1,14 @@
+FROM ollama/ollama:latest
+
+# 🤖 Set up Ollama with embedding models
+# This image will run the Ollama server with embedding models
+
+# Expose port for Ollama API
+EXPOSE 11434
+
+# Set environment variables
+ENV OLLAMA_HOST=0.0.0.0:11434
+
+# 🚀 Start Ollama server and initialize models
+ENTRYPOINT ["/bin/bash", "-c"]
+CMD ["ollama serve & sleep 5 && ollama pull nomic-embed-text && wait"]
