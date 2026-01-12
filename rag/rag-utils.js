@@ -8,9 +8,13 @@ import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { QdrantVectorStore } from "@langchain/qdrant";
 import { OllamaEmbeddings } from "@langchain/ollama";
 import { configDotenv } from "dotenv";
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
 // 🔐 Load environment variables
-configDotenv({ path: "../.env" });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+configDotenv({ path: join(__dirname, "../.env") });
 
 // 🧠 Initialize embedding model
 const embeddings = new OllamaEmbeddings({
