@@ -1,7 +1,7 @@
 import {ChatOllama} from "@langchain/ollama"
 import { configDotenv } from "dotenv";
 configDotenv()
-const ollama = new ChatOllama({
+export const ollama = new ChatOllama({
   baseUrl: "https://ollama.com",
   headers: {
     Authorization: "Bearer " + process.env.OLLAMA_API_KEY,
