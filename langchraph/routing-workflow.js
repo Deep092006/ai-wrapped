@@ -7,6 +7,22 @@
 import { MessagesAnnotation, StateGraph, START, END } from "@langchain/langgraph";
 import { ollama } from "../app.js";
 
+/**
+ * 📚 Key LangGraph Concepts Used:
+ * 
+ * 1️⃣ Conditional Routing - Routes to different nodes based on user input
+ * 2️⃣ State Management - Uses MessagesAnnotation for conversation tracking
+ * 3️⃣ Loop Control - Limits iterations using message count condition
+ * 4️⃣ Multi-Node Workflow - Multiple specialized nodes for different tasks
+ * 
+ * 💡 Checkpointing (from checkpoints.js):
+ * - MemorySaver stores workflow state at each step
+ * - thread_id identifies unique conversation sessions
+ * - checkpoint_id tracks specific state snapshots
+ * - getStateHistory() retrieves all past states
+ * - Useful for debugging, resuming, and state inspection
+ */
+
 // 🔀 Decide which platform post to generate
 function routePostByPlatform(state) {
   const userInput =
